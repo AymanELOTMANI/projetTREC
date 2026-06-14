@@ -1,0 +1,47 @@
+/* Application de la police Montserrat aux titres uniquement */
+.font-title {
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* --- Configuration Header Vidéo --- */
+.video-header {
+    position: relative;
+    height: 60vh;           /* Hauteur de 60% de l'écran */
+    min-height: 400px;      /* Hauteur minimum pour mobile */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-color: #000000;
+}
+
+.bg-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    object-fit: cover;      /* La vidéo couvre tout l'espace sans se déformer */
+}
+
+/* Filtre noir semi-transparent pour lire le texte */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Ajuste le 0.5 pour plus ou moins sombre */
+    z-index: 1;
+}
+
+/* Carte Leaflet */
+#map {
+    height: 650px;
+    width: 100%;
+    border-radius: 10px;
+}
