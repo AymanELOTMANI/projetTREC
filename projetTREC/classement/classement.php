@@ -138,6 +138,7 @@ $liveRows = mysqli_fetch_all(mysqli_query($conn, $sql_live), MYSQLI_ASSOC);
 // ─── Classement POR ───────────────────────────────────────────────────────────
 $sql_cl = "
     SELECT dos.numero_dossard, c.nom_cavalier, c.prenom_cavalier, c.categorie,
+           c.id_cavalier, p.id_epreuve,
            cmp.nom_competition, cmp.date_competition, cmp.date_fin_competition,
            e.type_epreuve, e.nom_epreuve, e.temps_ideal,
            ROUND(TIME_TO_SEC(TIMEDIFF(p.fin, p.debut)) / 60, 4) AS meilleur_temps_total
@@ -167,7 +168,32 @@ usort($raw, function ($a, $b) {
     }
     return $a['meilleur_temps_total'] <=> $b['meilleur_temps_total'];
 });
+
 $classementRows = $raw;
+
+// ─── Persistance dans resultat ────────────────────────────────────────────────
+foreach ($classementRows as $row) {
+    if ($row['score'] === null) continue;
+
+    $id_cav = (int)$row['id_cavalier'];
+    $id_ep  = (int)$row['id_epreuve'];
+    if (!$id_cav || !$id_ep) continue;
+    
+    $score  = (int)$row['score'];
+    $pen    = (int)$row['penalites'];
+
+    $ts  = (int)round((float)$row['meilleur_temps_total'] * 60);
+    $h   = intdiv($ts, 3600); $m = intdiv($ts % 3600, 60); $s = $ts % 60;
+    $tps = sprintf('%02d:%02d:%02d', $h, $m, $s);
+
+    $stmt = $conn->prepare("
+        UPDATE resultat
+        SET temps_total = ?, score = ?, penalites = ?
+        WHERE id_cavalier = ? AND id_epreuve = ?
+    ");
+    $stmt->bind_param('siiii', $tps, $score, $pen, $id_cav, $id_ep);
+    $stmt->execute();
+}
 ?>
 <meta http-equiv="refresh" content="30">
 <?php require '../header.php'; ?>

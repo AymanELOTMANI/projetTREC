@@ -31,37 +31,30 @@ $tfa = new TwoFactorAuth(new EndroidQrCodeProvider(), 'TREC');
 // Vérifie si le code entré par l'utilisateur est valide
 if ($tfa->verifyCode($secret, $code)) {
 
-    // Si le code est correct, on active la double authentification dans la base de données
+    // Code correct → on enregistre le secret en base et on active le 2FA
     $stmt = mysqli_prepare($conn, "UPDATE utilisateur SET secret_totp = ?, totp_active = 1 WHERE id_utilisateur = ?");
-
-    // On lie les paramètres à la requête SQL
     mysqli_stmt_bind_param($stmt, "si", $secret, $_SESSION['temp_user_id']);
-
-    // On exécute la requête
     mysqli_stmt_execute($stmt);
 
-    // On indique dans la session que la double authentification est validée
-    $_SESSION['2fa_valide'] = true;
+    // Finalisation de la session : on transfère les données temporaires
+    $_SESSION['id_utilisateur'] = $_SESSION['temp_user_id'];
+    $_SESSION['role']           = $_SESSION['temp_role']   ?? null;
+    $_SESSION['nom']            = $_SESSION['temp_nom']    ?? null;
+    $_SESSION['prenom']         = $_SESSION['temp_prenom'] ?? null;
+    $_SESSION['2fa_valide']     = true;
 
-    // On supprime les variables temporaires
-    unset($_SESSION['temp_secret']);
-    unset($_SESSION['temp_user_id']);
+    // Nettoyage
+    unset($_SESSION['temp_secret'], $_SESSION['temp_user_id'], $_SESSION['temp_role'], $_SESSION['temp_nom'], $_SESSION['temp_prenom']);
 
-    // Redirection selon le rôle de l'utilisateur
+    // Régénération de l'ID de session
+    session_regenerate_id(true);
+    $_SESSION['last_regeneration'] = time();
+
     $redirect = $_SESSION['2fa_redirect'] ?? 'espace_cavalier.php';
-    
-    // Vérifier que la page existe selon le rôle
-    $allowed_redirects = [
-        'espace_admin.php',
-        'espace_chef.php',
-        'espace_organisateur.php',
-        'espace_cavalier.php'
-    ];
-    
+    $allowed_redirects = ['espace_admin.php', 'espace_chef.php', 'espace_organisateur.php', 'espace_cavalier.php'];
     if (!in_array($redirect, $allowed_redirects)) {
         $redirect = 'espace_cavalier.php';
     }
-    
     unset($_SESSION['2fa_redirect']);
 
     // Si mot de passe temporaire → forcer le changement avant d'accéder à l'espace

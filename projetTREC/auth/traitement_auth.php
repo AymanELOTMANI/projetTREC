@@ -76,6 +76,7 @@ if (isset($_POST['connexion'])) {
     // password_verify() compare le mot de passe saisi avec le hash stocké en base
     if ($user && password_verify($password, $user['password_hash'])) {
 
+        // Vérification du statut du compte
         $statut = $user['statut'] ?? 'actif';
 
         if ($statut === 'en_attente') {
@@ -88,41 +89,29 @@ if (isset($_POST['connexion'])) {
             exit;
         }
 
-        $_SESSION['id_utilisateur'] = $user['id_utilisateur'];
-        $_SESSION['role']           = $user['role'];
-        $_SESSION['temp_user_id']   = $user['id_utilisateur'];
-        $_SESSION['nom']            = $user['nom'];
-        $_SESSION['prenom']         = $user['prenom'];
+        // Stockage TEMPORAIRE uniquement — id_utilisateur et role ne sont définis
+        // qu'après validation complète du 2FA (dans verif2fa.php / traitement2fa.php)
+        $_SESSION['temp_user_id'] = $user['id_utilisateur'];
+        $_SESSION['temp_role']    = $user['role'];
+        $_SESSION['temp_nom']     = $user['nom'];
+        $_SESSION['temp_prenom']  = $user['prenom'];
+        // On s'assure explicitement que la session principale n'est PAS définie
+        unset($_SESSION['id_utilisateur'], $_SESSION['role'], $_SESSION['nom'], $_SESSION['prenom']);
+        $_SESSION['2fa_valide']   = false;
 
-        // Détection mot de passe temporaire → on stocke en session, on agira après le 2FA
+        // ===== DÉTECTION MOT DE PASSE TEMPORAIRE =====
         if (str_starts_with($password, 'TREC-')) {
-            $_SESSION['mdp_temporaire'] = true;
-        }
+            // On nettoie tout avant de rediriger (pas de session partielle laissée ouverte)
+            session_unset();
+            session_destroy();
+            session_start();
+            $expiration = time() + 3600;
+            $signature  = hash_hmac('sha256', $user['id_utilisateur'] . '|' . $user['mail'] . '|' . $expiration, 'projetTREC_reset_2026_secret_key');
+            $token      = base64_encode($user['id_utilisateur'] . '|' . $expiration . '|' . $signature);
 
-        // Définition de la page de destination selon le rôle
-        if ($user['role'] === 'admin') {
-            $_SESSION['2fa_redirect'] = 'espace_admin.php';
-        } elseif ($user['role'] === 'chef_piste') {
-            $_SESSION['2fa_redirect'] = 'espace_chef.php';
-        } elseif ($user['role'] === 'organisateur') {
-            $_SESSION['2fa_redirect'] = 'espace_organisateur.php';
-        } else {
-            $_SESSION['2fa_redirect'] = 'espace_cavalier.php';
+            header('Location: login.php?action=reset&token=' . urlencode($token) . '&from=temp');
+            exit;
         }
-
-        if (!empty($user['totp_active']) && $user['totp_active'] == 1) {
-            $_SESSION['2fa_valide'] = false;
-            header('Location: login2fa.php');
-        } else {
-            // Pas de 2FA configuré → aller vers activation 2FA (obligatoire)
-            $_SESSION['2fa_valide'] = false;
-            header('Location: activation2fa.php');
-        }
-        exit;
-
-    } else {
-        header('Location: login.php?error=1');
-    }
 // =============================================
         // =============================================
         // Définition de la page de destination selon le rôle
@@ -137,14 +126,29 @@ if (isset($_POST['connexion'])) {
         }
 
         if (!empty($user['totp_active']) && $user['totp_active'] == 1) {
+            // 2FA déjà configuré → vérification du code
             $_SESSION['2fa_valide'] = false;
             header('Location: login2fa.php');
+        } elseif (empty($user['secret_totp'])) {
+            // Pas encore de 2FA → forcer la configuration
+            $_SESSION['2fa_valide'] = false;
+            header('Location: activation2fa.php');
         } else {
-            // Pas de 2FA configuré → redirection directe vers l'espace
-            $_SESSION['2fa_valide'] = true;
-            header('Location: ' . $_SESSION['2fa_redirect']);
+            // 2FA désactivé mais secret existant → accès direct
+            $_SESSION['2fa_valide']     = true;
+            $_SESSION['id_utilisateur'] = $user['id_utilisateur'];
+            $_SESSION['role']           = $user['role'];
+            $_SESSION['nom']            = $user['nom'];
+            $_SESSION['prenom']         = $user['prenom'];
+            unset($_SESSION['temp_user_id'], $_SESSION['temp_role'], $_SESSION['temp_nom'], $_SESSION['temp_prenom']);
+            session_regenerate_id(true);
+            $_SESSION['last_regeneration'] = time();
+            $redirect = $_SESSION['2fa_redirect'] ?? 'espace_cavalier.php';
+            unset($_SESSION['2fa_redirect']);
+            header('Location: ' . $redirect);
         }
 
     } else {
         header('Location: login.php?error=1');
     }
+}

@@ -813,15 +813,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <option value="admin">Admin</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="editStatutWrap" style="display:none;">
                             <label class="form-label small fw-bold">Statut</label>
                             <select class="form-select" name="statut" id="editUserStatut">
                                 <option value="actif">Actif</option>
                                 <option value="en_attente">En attente de validation</option>
-                                <option value="inactif">Inactif</option>
                             </select>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12" id="editAdresseWrap" style="display:none;">
                             <label class="form-label small fw-bold">Adresse</label>
                             <input type="text" class="form-control" name="adresse" id="editUserAdresse"
                                    placeholder="Ex : 12 rue des Écuries, 88000 Épinal" maxlength="255">
@@ -908,27 +907,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Rôle <span class="text-danger">*</span></label>
-                            <select class="form-select" name="role" required>
+                            <select class="form-select" name="role" id="createRole" required onchange="toggleCreateCavalierFields(this.value)">
                                 <option value="cavalier">Cavalier</option>
                                 <option value="organisateur">Organisateur</option>
                                 <option value="chef_piste">Chef de Piste</option>
                                 <option value="admin">Admin</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="createStatutWrap" style="display:none;">
                             <label class="form-label small fw-bold">Statut</label>
-                            <select class="form-select" name="statut">
+                            <select class="form-select" name="statut" id="createStatut">
                                 <option value="actif" selected>Actif</option>
                                 <option value="en_attente">En attente de validation</option>
                             </select>
                         </div>
-
-                        <div class="col-12">
+                        <div class="col-12" id="createAdresseWrap" style="display:none;">
                             <label class="form-label small fw-bold">Adresse</label>
-                            <input type="text" class="form-control" name="adresse" placeholder="Ex : 12 rue des Écuries, 88000 Épinal" maxlength="255">
+                            <input type="text" class="form-control" name="adresse" id="createAdresse"
+                                   placeholder="Ex : 12 rue des Écuries, 88000 Épinal" maxlength="255">
                         </div>
 
-                        <div class="col-md-6" id="champCategorie">
+                        <div class="col-md-6" id="champCategorie" style="display:none;">
                             <label class="form-label small fw-bold">Catégorie (cavalier)</label>
                             <select class="form-select" name="categorie" required>
                                 <option value="">— Non définie —</option>
@@ -1059,9 +1058,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="form-label small fw-bold">Catégorie</label>
                         <select class="form-select" name="filtre_categorie">
                             <option value="">— Toutes —</option>
-                            <option value="Club"     <?= (($_GET['filtre_categorie'] ?? '') === 'Club')     ? 'selected' : '' ?>>Club</option>
+                            <option value="Club 1"    <?= (($_GET['filtre_categorie'] ?? '') === 'Club 1')    ? 'selected' : '' ?>>Club 1</option>
+                            <option value="Club 2"    <?= (($_GET['filtre_categorie'] ?? '') === 'Club 2')    ? 'selected' : '' ?>>Club 2</option>
+                            <option value="Club 3"    <?= (($_GET['filtre_categorie'] ?? '') === 'Club 3')    ? 'selected' : '' ?>>Club 3</option>
                             <option value="Amateur 1" <?= (($_GET['filtre_categorie'] ?? '') === 'Amateur 1') ? 'selected' : '' ?>>Amateur 1</option>
                             <option value="Amateur 2" <?= (($_GET['filtre_categorie'] ?? '') === 'Amateur 2') ? 'selected' : '' ?>>Amateur 2</option>
+                            <option value="Elite"     <?= (($_GET['filtre_categorie'] ?? '') === 'Elite')     ? 'selected' : '' ?>>Elite</option>
                         </select>
                     </div>
                 </div>
@@ -1105,58 +1107,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Pré-remplissage du modal de modification au clic sur le bouton ✏️
 document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Modal Modifier ──────────────────────────────────────────────────────
     const modalEditUser = document.getElementById('modalEditUser');
-    if (!modalEditUser) return;
+    if (modalEditUser) {
+        modalEditUser.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
 
-    modalEditUser.addEventListener('show.bs.modal', function (event) {
-        const btn = event.relatedTarget;
+            document.getElementById('editUserId').value     = btn.dataset.id;
+            document.getElementById('editUserLogin').value  = btn.dataset.login;
+            document.getElementById('editUserNom').value    = btn.dataset.nom;
+            document.getElementById('editUserPrenom').value = btn.dataset.prenom;
+            document.getElementById('editUserMail').value   = btn.dataset.mail;
 
-        document.getElementById('editUserId').value     = btn.dataset.id;
-        document.getElementById('editUserLogin').value  = btn.dataset.login;
-        document.getElementById('editUserNom').value    = btn.dataset.nom;
-        document.getElementById('editUserPrenom').value = btn.dataset.prenom;
-        document.getElementById('editUserMail').value   = btn.dataset.mail;
+            const roleSelect      = document.getElementById('editUserRole');
+            const statutSelect    = document.getElementById('editUserStatut');
+            const categorieSelect = document.getElementById('editUserCategorie');
+            const categorieWrap   = document.getElementById('editCategoriWrap');
+            const adresseWrap     = document.getElementById('editAdresseWrap');
+            const statutWrap      = document.getElementById('editStatutWrap');
 
-        // Sélectionner la bonne option dans les <select>
-        const roleSelect     = document.getElementById('editUserRole');
-        const statutSelect   = document.getElementById('editUserStatut');
-        const categorieSelect = document.getElementById('editUserCategorie');
-        const categorieWrap   = document.getElementById('editCategoriWrap');
-        document.getElementById('editUserAdresse').value = btn.dataset.adresse ?? '';
+            for (let opt of roleSelect.options) {
+                opt.selected = (opt.value === btn.dataset.role);
+            }
+            for (let opt of statutSelect.options) {
+                opt.selected = (opt.value === btn.dataset.statut);
+            }
 
-        for (let opt of roleSelect.options) {
-            opt.selected = (opt.value === btn.dataset.role);
-        }
-        for (let opt of statutSelect.options) {
-            opt.selected = (opt.value === btn.dataset.statut);
-        }
+            const isCavalier = btn.dataset.role === 'cavalier';
 
-        // Catégorie : visible seulement si rôle = cavalier
-        const isCavalier = btn.dataset.role === 'cavalier';
-        categorieWrap.style.display = isCavalier ? 'block' : 'none';
-        for (let opt of categorieSelect.options) {
-            opt.selected = (opt.value === (btn.dataset.categorie ?? ''));
-        }
+            categorieWrap.style.display = isCavalier ? 'block' : 'none';
+            adresseWrap.style.display   = isCavalier ? 'block' : 'none';
+            statutWrap.style.display    = isCavalier ? 'block' : 'none';
 
-        // Masquer/afficher dynamiquement si on change le rôle dans la modal
-        roleSelect.addEventListener('change', function () {
-            categorieWrap.style.display = this.value === 'cavalier' ? 'block' : 'none';
+            for (let opt of categorieSelect.options) {
+                opt.selected = (opt.value === (btn.dataset.categorie ?? ''));
+            }
+            document.getElementById('editUserAdresse').value = isCavalier ? (btn.dataset.adresse ?? '') : '';
+
+            document.getElementById('mdpTempInfo').style.display = 'none';
+            document.getElementById('editUserPassword').value    = '';
+            document.getElementById('editUserPassword').type     = 'password';
+
+            roleSelect.addEventListener('change', function () {
+                const cav = this.value === 'cavalier';
+                categorieWrap.style.display = cav ? 'block' : 'none';
+                adresseWrap.style.display   = cav ? 'block' : 'none';
+                statutWrap.style.display    = cav ? 'block' : 'none';
+                if (!cav) {
+                    document.getElementById('editUserAdresse').value = '';
+                    document.getElementById('editUserStatut').value  = 'actif';
+                }
+            });
         });
-    });
+    }
+
+    // ── Modal Créer ─────────────────────────────────────────────────────────
+    const modalCreateUser = document.getElementById('modalCreateUser');
+    if (modalCreateUser) {
+        modalCreateUser.addEventListener('show.bs.modal', function () {
+            toggleCreateCavalierFields(document.getElementById('createRole').value);
+        });
+    }
+
 });
 
+// ── Fonctions globales ───────────────────────────────────────────────────────
+function toggleCreateCavalierFields(role) {
+    const adresseWrap = document.getElementById('createAdresseWrap');
+    const adresse     = document.getElementById('createAdresse');
+    const categorie   = document.getElementById('champCategorie');
+    const statutWrap  = document.getElementById('createStatutWrap');
+    const isCavalier  = role === 'cavalier';
+
+    adresseWrap.style.display = isCavalier ? 'block' : 'none';
+    categorie.style.display   = isCavalier ? 'block' : 'none';
+    statutWrap.style.display  = isCavalier ? 'block' : 'none';
+
+    if (!isCavalier) {
+        adresse.value    = '';
+        adresse.disabled = true;
+        document.getElementById('createStatut').value = 'actif';
+    } else {
+        adresse.disabled = false;
+    }
+}
+
 function genererMdpTemp() {
-    const chars  = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let rand     = '';
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let rand    = '';
     for (let i = 0; i < 12; i++) {
         rand += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    const mdp    = 'TREC-' + rand;
-    const input  = document.getElementById('editUserPassword');
-    input.value  = mdp;
-    input.type   = 'text'; // visible pour que l'admin puisse le copier
+    const mdp   = 'TREC-' + rand;
+    const input = document.getElementById('editUserPassword');
+    input.value = mdp;
+    input.type  = 'text';
     document.getElementById('mdpTempInfo').style.display = 'block';
 }
 

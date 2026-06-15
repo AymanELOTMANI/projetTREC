@@ -121,6 +121,25 @@ if (isset($_GET['action']) && $_GET['action'] === 'poll_comptes_attente') {
     exit;
 }
 
+// Endpoint AJAX : historique complet (lus + non lus)
+if (isset($_GET['action']) && $_GET['action'] === 'poll_historique') {
+    header('Content-Type: application/json; charset=utf-8');
+    $fichier = sys_get_temp_dir() . '/trec_messages_ephemeres.json';
+    $messages = [];
+    if (file_exists($fichier)) {
+        $decoded = json_decode(file_get_contents($fichier), true);
+        if (is_array($decoded)) {
+            $now = time();
+            $messages = array_values(array_filter(
+                $decoded,
+                fn($m) => ($now - ($m['timestamp'] ?? 0)) < 300
+            ));
+        }
+    }
+    echo json_encode(['ok' => true, 'messages' => $messages]);
+    exit;
+}
+
 // 5. Endpoint AJAX : envoi message éphémère (appelé depuis espace_cavalier via fetch)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'send_message_ephemere') {
     header('Content-Type: application/json; charset=utf-8');
@@ -838,6 +857,20 @@ document.addEventListener('click', function(e) {
         p.style.display = 'none';
     }
 });
+
+fetch('espace_organisateur.php?action=poll_historique', { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.ok) return;
+        data.messages.forEach(msg => {
+            historiqueMessages.push(msg);
+            if (!msg.lu) totalNonLus++;
+        });
+        historiqueMessages.sort((a, b) => b.timestamp - a.timestamp);
+        majBadge();
+        majHistorique();
+    })
+    .catch(() => {});
 
 pollMessages();
 setInterval(pollMessages, POLL_INTERVAL);

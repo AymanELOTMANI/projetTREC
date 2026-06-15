@@ -1,10 +1,8 @@
 <?php
 // 1. Initialisation et Sécurité
-session_start();
-if (!isset($_SESSION['id_utilisateur'])) {
-    header('Location: login.php');
-    exit();
-}
+
+require_once 'verif_session.php'; // Gère le session_start() et vérifie le 2FA
+
 require_once __DIR__ . '/../config.php';
 
 $id_utilisateur = intval($_SESSION['id_utilisateur']);
@@ -528,10 +526,32 @@ $badge_statut = [
                                         <?php foreach ($competitions_dispo as $comp): ?>
                                             <option value="<?= $comp['id_competition'] ?>">
                                                 <?= htmlspecialchars($comp['nom_competition']) ?>
-                                                (<?= date('d/m/Y', strtotime($comp['date_competition'])) ?>)
+                                                — inscriptions avant le <?= date('d/m/Y', strtotime($comp['date_competition'])) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <div id="info-limite" class="text-muted small mt-2" style="display:none">
+                                        <i class="bi bi-clock me-1"></i>
+                                        Date limite d'inscription : <strong id="val-limite"></strong>
+                                    </div>
+                                    <script>
+                                    document.getElementById('id_competition').addEventListener('change', function () {
+                                        const dates = {
+                                            <?php foreach ($competitions_dispo as $comp): ?>
+                                            <?= $comp['id_competition'] ?>: "<?= date('d/m/Y', strtotime($comp['date_competition'])) ?>",
+                                            <?php endforeach; ?>
+                                        };
+                                        const val = this.value;
+                                        const info = document.getElementById('info-limite');
+                                        const span = document.getElementById('val-limite');
+                                        if (val && dates[val]) {
+                                            span.textContent = dates[val];
+                                            info.style.display = 'block';
+                                        } else {
+                                            info.style.display = 'none';
+                                        }
+                                    });
+                                    </script>
                                 </div>
                                 <button type="submit" class="btn btn-inscription w-100"
                                         onclick="return confirmerDemande()">

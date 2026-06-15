@@ -87,7 +87,7 @@ $showHeroVideo = false;
                                     <i class="bi bi-person"></i>
                                 </span>
                                 <!-- type="text" ici, à remplacer par type="email" pour une meilleure validation -->
-                                <input type="text" name="mail" class="form-control border-start-0 ps-0 shadow-none" placeholder="mail@trec.fr" required>
+                                <input type="email" name="mail" class="form-control border-start-0 ps-0 shadow-none" placeholder="mail@trec.fr" required>
                             </div>
                         </div>
 

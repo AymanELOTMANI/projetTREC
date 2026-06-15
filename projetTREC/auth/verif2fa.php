@@ -31,24 +31,30 @@ $tfa = new TwoFactorAuth(new EndroidQrCodeProvider(), 'TREC');
 
 // Vérification du code saisi par rapport au secret stocké
 if ($tfa->verifyCode($user['secret_totp'], $code)) {
-    $_SESSION['2fa_valide'] = true;
-    unset($_SESSION['temp_user_id']);
+    // Code correct : on finalise la session en transférant les données temporaires
+    $_SESSION['id_utilisateur'] = $_SESSION['temp_user_id'];
+    $_SESSION['role']           = $_SESSION['temp_role']   ?? null;
+    $_SESSION['nom']            = $_SESSION['temp_nom']    ?? null;
+    $_SESSION['prenom']         = $_SESSION['temp_prenom'] ?? null;
+    $_SESSION['2fa_valide']     = true;
 
-    // Si mot de passe temporaire → forcer le changement
-    if (!empty($_SESSION['mdp_temporaire'])) {
-        $expiration  = time() + 3600;
-        $stmt_mail   = mysqli_prepare($conn, "SELECT mail FROM utilisateur WHERE id_utilisateur = ?");
-        mysqli_stmt_bind_param($stmt_mail, "i", $_SESSION['id_utilisateur']);
-        mysqli_stmt_execute($stmt_mail);
-        $row_mail    = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_mail));
-        $signature   = hash_hmac('sha256', $_SESSION['id_utilisateur'] . '|' . $row_mail['mail'] . '|' . $expiration, 'projetTREC_reset_2026_secret_key');
-        $token       = base64_encode($_SESSION['id_utilisateur'] . '|' . $expiration . '|' . $signature);
-        header('Location: login.php?action=reset&token=' . urlencode($token) . '&from=temp');
-        exit();
+    // Nettoyage des variables temporaires
+    unset($_SESSION['temp_user_id'], $_SESSION['temp_role'], $_SESSION['temp_nom'], $_SESSION['temp_prenom']);
+
+    // Régénération de l'ID de session pour éviter la fixation de session
+    session_regenerate_id(true);
+    $_SESSION['last_regeneration'] = time();
+
+    $redirect = $_SESSION['2fa_redirect'] ?? 'espace_cavalier.php';
+    $allowed_redirects = ['espace_admin.php', 'espace_chef.php', 'espace_organisateur.php', 'espace_cavalier.php'];
+    if (!in_array($redirect, $allowed_redirects)) {
+        $redirect = 'espace_cavalier.php';
     }
+    unset($_SESSION['2fa_redirect']);
 
-    header('Location: ' . $_SESSION['2fa_redirect']);
-    exit();
+    header('Location: ' . $redirect);
+} else {
+    // Code incorrect : retour sur la page de vérification avec un message d'erreur
+    header('Location: login2fa.php?error=1');
 }
-   
 ?>

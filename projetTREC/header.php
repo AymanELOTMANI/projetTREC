@@ -88,7 +88,7 @@ $nomComplet = trim(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? ''))
                 <li class="nav-item"><a class="<?= $btnClass ?>" href="/projetTREC/associer/associer.php"><i class="bi bi-broadcast-pin"></i> RFID</a></li>
                 <li class="nav-item"><a class="<?= $btnClass ?>" href="/projetTREC/parcours/tracerParcours.php"><i class="bi bi-pencil"></i> Parcours</a></li>
                 <li class="nav-item"><a class="<?= $btnClass ?>" href="/projetTREC/competition/affectation_depart.php"><i class="bi bi-diagram-3"></i> Affectation</a></li>
-                <li class="nav-item"><a class="<?= $btnActionClass ?>" href="/projetTREC/auth/espace_chef.php"><i class="bi bi-person-gear"></i> Espace chef</a></li>
+                <li class="nav-item"><a class="<?= $btnActionClass ?>" href="/projetTREC/auth/espace_chef.php"><i class="bi bi-person-gear"></i> Espace Chef de Piste</a></li>
 
             <?php elseif ($estOrganisateur): ?>
                 <li class="nav-item"><a class="<?= $btnClass ?>" href="/projetTREC/classement/troncons.php"><i class="bi bi-flag"></i> Tronçons</a></li>
@@ -99,7 +99,7 @@ $nomComplet = trim(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? ''))
                 <li class="nav-item"><a class="<?= $btnActionClass ?>" href="/projetTREC/auth/espace_organisateur.php"><i class="bi bi-person-gear"></i> Espace Organisateur</a></li>
 
             <?php elseif ($estCavalier): ?>
-                <li class="nav-item"><a class="<?= $btnActionClass ?>" href="/projetTREC/auth/espace_cavalier.php"><i class="bi bi-person"></i> Mon espace</a></li>
+                <li class="nav-item"><a class="<?= $btnActionClass ?>" href="/projetTREC/auth/espace_cavalier.php"><i class="bi bi-person"></i> Espace Cavalier</a></li>
             <?php endif; ?>
 
         <?php endif; ?>

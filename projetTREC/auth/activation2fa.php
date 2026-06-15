@@ -25,8 +25,8 @@ use RobThree\Auth\TwoFactorAuth;
 use RobThree\Auth\Providers\Qr\EndroidQrCodeProvider;
 
 // Récupère le nom et le rôle depuis la session (déjà définis dans traitement_auth.php)
-$nom_compte = trim(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '')) ?: 'Compte inconnu';
-$role_utilisateur = $_SESSION['role'] ?? 'inconnu';
+$nom_compte = trim(($_SESSION['temp_prenom'] ?? '') . ' ' . ($_SESSION['temp_nom'] ?? '')) ?: 'Compte inconnu';
+$role_utilisateur = $_SESSION['temp_role'] ?? 'inconnu';
 
 
 // Initialisation de la librairie 2FA avec le nom affiché dans Google Authenticator

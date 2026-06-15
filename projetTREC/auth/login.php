@@ -108,13 +108,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_submit'])) {
             mysqli_stmt_bind_param($stmtUpd, 'si', $hash, $user['id_utilisateur']);
             mysqli_stmt_execute($stmtUpd);
 
-            // Nettoyer le flag de mot de passe temporaire
+            // Si c'est une première connexion via mdp temporaire (créé par l'admin)
+            // ET que le 2FA n'est pas encore activé → on force l'activation avant d'accéder à l'espace
+            if (!empty($_SESSION['mdp_temporaire']) && !empty($_SESSION['temp_user_id'])) {
+                $stmt_2fa = mysqli_prepare($conn, "SELECT totp_active FROM utilisateur WHERE id_utilisateur = ?");
+                mysqli_stmt_bind_param($stmt_2fa, 'i', $_SESSION['temp_user_id']);
+                mysqli_stmt_execute($stmt_2fa);
+                $row_2fa = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_2fa));
+
+                unset($_SESSION['mdp_temporaire']); // On a consommé le flag
+
+                if (empty($row_2fa['totp_active']) || $row_2fa['totp_active'] == 0) {
+                    // 2FA pas encore configuré → on force l'activation maintenant
+                    header('Location: activation2fa.php');
+                    exit;
+                }
+                // 2FA déjà configuré (cas rare) → on envoie vers la vérification normale
+                header('Location: login2fa.php');
+                exit;
+            }
+
+            // Cas reset mot de passe oublié classique (pas de mdp temporaire)
             unset($_SESSION['mdp_temporaire']);
-
-            $suffix = (($_POST['from'] ?? '') === 'temp') ? '&from=temp' : '';
-            header('Location: login.php?reset=ok' . $suffix);
-            exit;
-
             $suffix = (($_POST['from'] ?? '') === 'temp') ? '&from=temp' : '';
             header('Location: login.php?reset=ok' . $suffix);
             exit;
@@ -319,7 +334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_submit'])) {
                             <i class="bi bi-hourglass-split me-2 fs-5"></i>
                             <div>
                                 <strong>Inscription enregistrée !</strong><br>
-                                Votre compte est en attente de validation par un or. Vous recevrez un mail dès qu'il sera activé.
+                                Votre compte est en attente de validation par un organisateur. Vous recevrez un mail dès qu'il sera activé.
                             </div>
                         </div>
                     <?php endif; ?>

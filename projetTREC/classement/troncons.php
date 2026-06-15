@@ -138,17 +138,21 @@ if ($epreuve_courante) {
                 i.id_dossard, d.numero_dossard,
                 pa.id_passage, pa.debut, pa.p1, pa.p2, pa.fin,
                 pa.duree_troncon1_min, pa.duree_troncon2_min, pa.duree_troncon3_min, pa.statut,
-                r.penalites
+                CASE
+                WHEN pa.debut IS NOT NULL AND pa.fin IS NOT NULL AND ep.temps_ideal IS NOT NULL
+                THEN FLOOR(ABS(ROUND(TIME_TO_SEC(TIMEDIFF(pa.fin, pa.debut)) / 60, 4) - ep.temps_ideal) * 60 / 4)
+                ELSE NULL
+END AS penalites
          FROM cavalier ca
          JOIN inscription i ON i.id_cavalier = ca.id_cavalier
                             AND i.id_competition = ?
                             AND i.statut_inscription IN ('confirmee','confirmée')
          LEFT JOIN dossard d   ON d.id_dossard  = i.id_dossard
          LEFT JOIN passage pa  ON pa.id_dossard = i.id_dossard
-         LEFT JOIN resultat r  ON r.id_cavalier = ca.id_cavalier
-                               AND r.id_epreuve  = ?
+                               AND pa.id_epreuve = ?
+         LEFT JOIN epreuve ep ON ep.id_epreuve = ?
          ORDER BY d.numero_dossard ASC, ca.nom_cavalier ASC",
-        "ii", (int)$epreuve_courante['id_competition'], (int)$epreuve_courante['id_epreuve']
+        "iii", (int)$epreuve_courante['id_competition'], (int)$epreuve_courante['id_epreuve'], (int)$epreuve_courante['id_epreuve']
     );
     if ($stmt_pass) $passages = mysqli_fetch_all(mysqli_stmt_get_result($stmt_pass), MYSQLI_ASSOC);
 }
@@ -456,12 +460,13 @@ $erreur_msg = match($_GET['erreur'] ?? '') {
 
                                             <!-- ── Colonne Pénalités ── -->
                                             <td>
-                                                <?php if ($p['penalites'] !== null): ?>
-                                                    <span class="badge <?= intval($p['penalites']) > 0 ? 'bg-danger' : 'bg-success' ?>">
-                                                        <?= intval($p['penalites']) ?>
+                                                <?php $pen = $p['penalites'] ?? null; ?>
+                                                <?php if ($pen !== null && $pen !== ''): ?>
+                                                    <span class="badge <?= intval($pen) > 0 ? 'bg-danger' : 'bg-success' ?>">
+                                                        <?= intval($pen) ?>
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="text-muted">—</span>
+                                                    <span class="text-muted small"><?= htmlspecialchars((string)($p['penalites'] ?? 'NULL')) ?></span>
                                                 <?php endif; ?>
                                             </td>
 
